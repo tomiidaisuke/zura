@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang=ja>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>ズラ</title>
+<style>
+html,body{margin:0;height:100%;background:#1a1714;color:#f4e8d4;font-family:sans-serif;overflow:hidden}
+header{display:flex;justify-content:space-between;padding:10px 16px}
+h1{margin:0;font-size:18px}
+#c{display:block;margin:0 auto;background:#2a241c;touch-action:none}
+#help,#pad{text-align:center;font-size:12px;padding:8px}
+#help{opacity:.7}
+#ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7)}
+#ov.hide{display:none}
+.card{background:#2f2820;border:2px solid #e8b84a;padding:28px;width:min(400px,90vw);text-align:center}
+button{background:#e8b84a;border:0;padding:10px 18px;font-weight:700;cursor:pointer;margin:3px}
+</style>
+</head>
+<body>
+<header><h1>ズラ</h1><div>スコア <b id=sc>0</b>　アウト <b id=ou>0</b>/3</div></header>
+<canvas id=c></canvas>
+<p id=pad>
+<button type=button id=bU>上</button>
+<button type=button id=bL>左</button>
+<button type=button id=bD>下</button>
+<button type=button id=bR>右</button>
+<button type=button id=bZ>ズラ</button>
+</p>
+<div id=help>黄色い自分がプレイヤー。頭が光ってるのがハゲ。近づいてズラ。</div>
+<div id=ov><div class=card>
+<h2 id=tt>ズラ</h2>
+<p id=tx>ハゲてる奴にだけズラ。<br>髪があるのに被せたらアウト。<br>ハゲを逃したらアウト。</p>
+<button type=button id=go>はじめる</button>
+</div></div>
+<script src="play.js"></script>
+</body>
+</html>
