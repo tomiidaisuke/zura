@@ -1,38 +1,145 @@
 <!DOCTYPE html>
-<html lang=ja>
+<html lang="ja">
 <head>
-<meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>ズラ</title>
 <style>
-html,body{margin:0;height:100%;background:#1a1714;color:#f4e8d4;font-family:sans-serif;overflow:hidden}
-header{display:flex;justify-content:space-between;padding:10px 16px}
-h1{margin:0;font-size:18px}
-#c{display:block;margin:0 auto;background:#2a241c;touch-action:none}
-#help,#pad{text-align:center;font-size:12px;padding:8px}
-#help{opacity:.7}
-#ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7)}
-#ov.hide{display:none}
-.card{background:#2f2820;border:2px solid #e8b84a;padding:28px;width:min(400px,90vw);text-align:center}
-button{background:#e8b84a;border:0;padding:10px 18px;font-weight:700;cursor:pointer;margin:3px}
+  html,body{margin:0;height:100%;background:#1a1714;color:#f4e8d4;font-family:-apple-system,sans-serif;overflow:hidden;touch-action:none}
+  header{position:fixed;top:0;left:0;right:0;z-index:2;display:flex;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 16px 8px;font-size:15px}
+  h1{margin:0;font-size:18px}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+  #ov{position:fixed;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.72);padding:20px}
+  #ov.hide{display:none}
+  .card{background:#2f2820;border:2px solid #e8b84a;padding:28px 22px;width:min(400px,92vw);text-align:center;border-radius:12px}
+  .card p{line-height:1.6}
+  button{background:#e8b84a;color:#1a1714;border:0;padding:16px 28px;font-size:18px;font-weight:700;border-radius:10px}
 </style>
 </head>
 <body>
-<header><h1>ズラ</h1><div>スコア <b id=sc>0</b>　アウト <b id=ou>0</b>/3</div></header>
-<canvas id=c></canvas>
-<p id=pad>
-<button type=button id=bU>上</button>
-<button type=button id=bL>左</button>
-<button type=button id=bD>下</button>
-<button type=button id=bR>右</button>
-<button type=button id=bZ>ズラ</button>
-</p>
-<div id=help>黄色い自分がプレイヤー。頭が光ってるのがハゲ。近づいてズラ。</div>
-<div id=ov><div class=card>
-<h2 id=tt>ズラ</h2>
-<p id=tx>ハゲてる奴にだけズラ。<br>髪があるのに被せたらアウト。<br>ハゲを逃したらアウト。</p>
-<button type=button id=go>はじめる</button>
+<header><h1>ズラ</h1><div>スコア <b id="sc">0</b>　アウト <b id="ou">0</b>/3</div></header>
+<canvas id="c"></canvas>
+<div id="ov"><div class="card">
+<h2 id="tt">ズラ</h2>
+<p id="tx">頭が光ってる奴をタップしてズラを被せる。<br>髪があるのにタップしたらアウト。<br>ハゲを逃したらアウト。</p>
+<button id="go" type="button">はじめる</button>
 </div></div>
-<script src="play.js"></script>
+<script>
+(function(){
+  var C=document.getElementById("c"),X=C.getContext("2d");
+  var ov=document.getElementById("ov"),tt=document.getElementById("tt"),tx=document.getElementById("tx");
+  var scEl=document.getElementById("sc"),ouEl=document.getElementById("ou");
+  var W=320,H=560,play=0,sc=0,ou=0,t=0,sp=0,E=[],F=[],last=0;
+  function fit(){
+    W=window.innerWidth;H=window.innerHeight;
+    var d=window.devicePixelRatio||1;
+    C.width=W*d;C.height=H*d;
+    C.style.width=W+"px";C.style.height=H+"px";
+    X.setTransform(d,0,0,d,0,0);
+  }
+  fit();
+  window.addEventListener("resize",fit);
+  function hud(){scEl.textContent=sc;ouEl.textContent=ou}
+  function rnd(a,b){return a+Math.random()*(b-a)}
+  function pick(a){return a[(a.length*Math.random())|0]}
+  function boom(x,y,s,ok){F.push({x:x,y:y,s:s,ok:ok,t:0})}
+  function fail(why){
+    ou++;hud();
+    if(ou>=3){
+      play=0;
+      tt.textContent="アウト";
+      tx.textContent="スコア "+sc+" / "+why;
+      document.getElementById("go").textContent="もう一回";
+      ov.classList.remove("hide");
+    }
+  }
+  function spawn(){
+    var bald=Math.random()<0.5,s=pick(["l","r","t","b"]),v=50+Math.min(80,t*4);
+    var x,y,vx,vy;
+    if(s==="l"){x=-30;y=rnd(80,H-40);vx=v;vy=rnd(-16,16)}
+    if(s==="r"){x=W+30;y=rnd(80,H-40);vx=-v;vy=rnd(-16,16)}
+    if(s==="t"){x=rnd(30,W-30);y=50;vx=rnd(-16,16);vy=v}
+    if(s==="b"){x=rnd(30,W-30);y=H+30;vx=rnd(-16,16);vy=-v}
+    E.push({x:x,y:y,vx:vx,vy:vy,r:28,bald:bald,on:0,hair:pick(["#2b1d12","#4a2e14","#1a1a1a"])});
+  }
+  function tap(x,y){
+    if(!play)return;
+    var best=null,bd=40,i,e,d;
+    for(i=0;i<E.length;i++){
+      e=E[i];if(e.on)continue;
+      d=Math.hypot(x-e.x,y-e.y);
+      if(d<bd){bd=d;best=e}
+    }
+    if(!best)return;
+    if(best.bald){best.on=1;sc++;hud();boom(best.x,best.y-30,"ナイスズラ",1)}
+    else{boom(best.x,best.y-30,"違う",0);fail("髪があるのに被せた")}
+  }
+  function tick(dt){
+    if(!play)return;
+    t+=dt;sp-=dt;
+    if(sp<=0&&E.length<8){spawn();sp=Math.max(0.45,1.2-t*0.03)}
+    var keep=[],i,e,gone;
+    for(i=0;i<E.length;i++){
+      e=E[i];e.x+=e.vx*dt;e.y+=e.vy*dt;
+      gone=e.x<-50||e.x>W+50||e.y<40||e.y>H+50;
+      if(gone){if(e.bald&&!e.on)fail("ハゲを逃した")}
+      else keep.push(e);
+    }
+    E=keep;
+    for(i=0;i<F.length;i++)F[i].t+=dt;
+    F=F.filter(function(p){return p.t<0.8});
+  }
+  function face(e){
+    X.save();X.translate(e.x,e.y);
+    X.fillStyle="#c9a27a";X.beginPath();X.arc(0,6,16,0,6.3);X.fill();
+    X.fillStyle="#e6c8a8";X.beginPath();X.arc(0,-6,20,0,6.3);X.fill();
+    if(e.bald&&!e.on){
+      X.fillStyle="rgba(255,255,255,0.6)";
+      X.beginPath();X.ellipse(-4,-12,7,4,-0.5,0,6.3);X.fill();
+    }else{
+      X.fillStyle=e.on?"#3a2416":e.hair;
+      X.beginPath();X.ellipse(0,-16,21,13,0,3.14,0);X.fill();
+      X.beginPath();X.arc(-12,-6,8,0,6.3);X.arc(12,-6,8,0,6.3);X.fill();
+    }
+    X.fillStyle="#2a2018";
+    X.beginPath();X.arc(-6,-5,2,0,6.3);X.fill();
+    X.beginPath();X.arc(6,-5,2,0,6.3);X.fill();
+    X.restore();
+  }
+  function draw(){
+    X.clearRect(0,0,W,H);
+    X.fillStyle="#2a241c";X.fillRect(0,0,W,H);
+    var i;
+    for(i=0;i<E.length;i++)face(E[i]);
+    for(i=0;i<F.length;i++){
+      var p=F[i];
+      X.globalAlpha=1-p.t/0.8;
+      X.fillStyle=p.ok?"#7cbc6a":"#e85d4a";
+      X.font="bold 18px -apple-system,sans-serif";
+      X.textAlign="center";
+      X.fillText(p.s,p.x,p.y-p.t*24);
+      X.globalAlpha=1;
+    }
+  }
+  function loop(now){
+    if(!last)last=now;
+    var dt=Math.min(0.033,(now-last)/1000);
+    last=now;tick(dt);draw();
+    requestAnimationFrame(loop);
+  }
+  function pos(ev){
+    var r=C.getBoundingClientRect();
+    var tch=ev.changedTouches?ev.changedTouches[0]:ev;
+    return {x:tch.clientX-r.left,y:tch.clientY-r.top};
+  }
+  C.addEventListener("touchstart",function(ev){ev.preventDefault();var p=pos(ev);tap(p.x,p.y)},{passive:false});
+  C.addEventListener("click",function(ev){var p=pos(ev);tap(p.x,p.y)});
+  document.getElementById("go").addEventListener("click",function(){
+    ov.classList.add("hide");sc=ou=t=sp=0;E=[];F=[];hud();play=1;last=0;
+  });
+  requestAnimationFrame(loop);
+})();
+</script>
 </body>
 </html>
